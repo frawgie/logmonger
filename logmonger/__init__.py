@@ -33,19 +33,32 @@ class MongoHandler(logging.Handler):
         Send the record to a mongo instance as a document.
         """
         try:
+            message = None
+            if isinstance(record.msg, Exception):
+                message = self.transform_message(record)
+            else:
+                message = record.msg
+
             entry = {
                     'timestamp': datetime.datetime.now(),
-                    'msg': record.msg,
+                    'msg': message,
                     'level': record.levelname,
                     'module': record.module,
                     'lineno': record.lineno}
-            # FIXME: Handle exception messages
             # FIXME: Add threading info
             # FIXME: Add multiproc info
+            print entry
             self.save(entry)
             #self.db.logs.save(entry)
-        except Exception, _:
+        except Exception, e:
+            print e
             self.handleError(record)
+
+    def transform_message(self, message):
+        exception_type = type(message.msg)
+        log_message = str(message.msg)
+        arguments = message.msg.args
+        return "%s: %s, %s" % (exception_type, log_message, arguments) 
 
     def save(self, entry):
        self.client.logs.logs.save(entry)

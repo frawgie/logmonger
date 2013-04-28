@@ -45,4 +45,26 @@ class TestLogMonger(unittest.TestCase):
 
         self.mox.VerifyAll()
 
+    def test_emit_exception(self):
+        fake_date = "2013 3 7"
+        log_message = "This is my output!"
 
+        handler = logmonger.MongoHandler()
+        logger = logging.getLogger()
+        logger.addHandler(handler)
+
+        self.mox.StubOutWithMock(handler, 'save')
+        self.mox.StubOutWithMock(handler, 'transform_message')
+        self.mox.StubOutWithMock(datetime, 'datetime')
+
+        handler.transform_message(mox.IgnoreArg()).AndReturn(log_message)
+        datetime.datetime.now().AndReturn(fake_date)
+        datetime.datetime.now().AndReturn(fake_date) # FIXME
+        handler.save(mox.ContainsKeyValue("msg", log_message))
+
+        self.mox.ReplayAll()
+
+        my_exception = Exception(log_message)
+        logger.exception(my_exception)
+
+        self.mox.VerifyAll()
