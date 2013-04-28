@@ -24,7 +24,6 @@ class MongoHandler(logging.Handler):
         """
         logging.Handler.__init__(self)
         self.client = pymongo.MongoClient(host, port)
-#        self.db = self.client.logs
 
     def emit(self, record):
         """
@@ -44,22 +43,49 @@ class MongoHandler(logging.Handler):
                     'msg': message,
                     'level': record.levelname,
                     'module': record.module,
-                    'lineno': record.lineno}
-            # FIXME: Add threading info
-            # FIXME: Add multiproc info
-            print entry
+                    'function': record.funcName,
+                    'lineno': record.lineno,
+                }
+
+            self.add_thread_info(entry, record)
+            self.add_multiproc_info(entry, record)
+
             self.save(entry)
-            #self.db.logs.save(entry)
-        except Exception, e:
-            print e
+        except Exception, _:
             self.handleError(record)
 
     def transform_message(self, message):
+        """
+        Exceptions can't be serialized directly so we need to transform it
+        to a string instead. We use the format: Type: message, arguments.
+        """
         exception_type = type(message.msg)
         log_message = str(message.msg)
         arguments = message.msg.args
         return "%s: %s, %s" % (exception_type, log_message, arguments) 
 
+    def add_thread_info(self, entry, record):
+        """
+        Add thread information in its own key.
+        """
+        entry['thread'] = {
+            'thread': record.thread,
+            'thread_name': record.threadName,
+        }
+
+    def add_multiproc_info(self, entry, record):
+        """
+        Add process information in its own key.
+        """
+        entry['process'] = {
+            'process_name': record.processName,
+            'process_id': record.process,
+        }
+
     def save(self, entry):
-       self.client.logs.logs.save(entry)
+        """
+        Save an entry to the collection. We want this in a separate method since
+        it makes it easier to stub it with mox.
+        """
+        self.client.logs.logs.save(entry)
 

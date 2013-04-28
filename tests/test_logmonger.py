@@ -10,38 +10,39 @@ class TestLogMonger(unittest.TestCase):
 
     def setUp(self):
         self.mox = mox.Mox()
+        self.handler = logmonger.MongoHandler()
+        self.logger = logging.getLogger()
+        self.logger.addHandler(self.handler)
+
 
     def tearDown(self):
         self.mox.UnsetStubs()
 
     def test_handler(self):
-        handler = self.mox.CreateMock(logmonger.MongoHandler())
-        logger = logging.getLogger()
-        logger.addHandler(handler)
-
-        handler.handle(mox.IsA(logging.LogRecord))
+        self.mox.StubOutWithMock(self.handler, 'handle')
+        self.handler.handle(mox.IsA(logging.LogRecord))
 
         self.mox.ReplayAll()
-        logger.info("Log me.")
+        self.logger.info("Log me.")
         self.mox.VerifyAll()
 
 
     def test_emit(self):
         fake_date = "2013 3 7"
-        handler = logmonger.MongoHandler()
-        logger = logging.getLogger()
-        logger.addHandler(handler)
+        log_message = "Log me too."
 
-        self.mox.StubOutWithMock(handler, 'save')
+        self.mox.StubOutWithMock(self.handler, 'save')
         self.mox.StubOutWithMock(datetime, 'datetime')
         datetime.datetime.now().AndReturn(fake_date)
 
-        handler.save({'timestamp': fake_date, # Ugly!
-            'msg': "Log me too.", 'lineno': 44, 'module': 'test_logmonger', 'level': 'INFO'})
+        self.handler.save(mox.And(
+            mox.ContainsKeyValue("msg", log_message),
+            mox.ContainsKeyValue("level", "INFO"),
+            mox.ContainsKeyValue("timestamp", fake_date)))
 
         self.mox.ReplayAll()
 
-        logger.info("Log me too.")
+        self.logger.info(log_message)
 
         self.mox.VerifyAll()
 
@@ -49,22 +50,18 @@ class TestLogMonger(unittest.TestCase):
         fake_date = "2013 3 7"
         log_message = "This is my output!"
 
-        handler = logmonger.MongoHandler()
-        logger = logging.getLogger()
-        logger.addHandler(handler)
-
-        self.mox.StubOutWithMock(handler, 'save')
-        self.mox.StubOutWithMock(handler, 'transform_message')
+        self.mox.StubOutWithMock(self.handler, 'save')
+        self.mox.StubOutWithMock(self.handler, 'transform_message')
         self.mox.StubOutWithMock(datetime, 'datetime')
 
-        handler.transform_message(mox.IgnoreArg()).AndReturn(log_message)
+        self.handler.transform_message(mox.IgnoreArg()).AndReturn(log_message)
         datetime.datetime.now().AndReturn(fake_date)
         datetime.datetime.now().AndReturn(fake_date) # FIXME
-        handler.save(mox.ContainsKeyValue("msg", log_message))
+        self.handler.save(mox.ContainsKeyValue("msg", log_message))
 
         self.mox.ReplayAll()
 
         my_exception = Exception(log_message)
-        logger.exception(my_exception)
+        self.logger.exception(my_exception)
 
         self.mox.VerifyAll()

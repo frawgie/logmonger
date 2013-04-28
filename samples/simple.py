@@ -14,5 +14,5 @@ logger.error("My error")
 logger.warning("My warning")
 logger.info("My notification")
 logger.debug("My debug")
-#logger.exception(Exception("My exception"))
+logger.exception(Exception("My exception"))
 
