@@ -13,17 +13,25 @@ import datetime
 import logging
 import pymongo
 
+
 class MongoHandler(logging.Handler):
     """
     A class which sends records to a MongoDB.
     """
 
-    def __init__(self, host="localhost", port=27017):
+    def __init__(self, host="localhost", port=27017, dbname='logs', collection='logs'):
         """
         Initialize the connection pool and set the desired database.
+
+        :param host: the IP address or hostname for the MongoDb (default: localhost)
+        :param port: the port (default: 27017)
+        :param dbname: the name of the DB to save log records to, will default to 'logs'
+        :param collection: the name of the collection to save logs to (default: 'logs')
         """
         logging.Handler.__init__(self)
         self.client = pymongo.MongoClient(host, port)
+        self.dbname = dbname
+        self.collection = collection
 
     def emit(self, record):
         """
@@ -62,7 +70,7 @@ class MongoHandler(logging.Handler):
         exception_type = type(message.msg)
         log_message = str(message.msg)
         arguments = message.msg.args
-        return "%s: %s, %s" % (exception_type, log_message, arguments) 
+        return "%s: %s, %s" % (exception_type, log_message, arguments)
 
     def add_thread_info(self, entry, record):
         """
@@ -87,5 +95,4 @@ class MongoHandler(logging.Handler):
         Save an entry to the collection. We want this in a separate method since
         it makes it easier to stub it with mox.
         """
-        self.client.logs.logs.save(entry)
-
+        self.client[self.dbname][self.collection].save(entry)
