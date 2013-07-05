@@ -15,10 +15,10 @@ def my_func(log):
     log.setLevel(lvl)
 
 
-logger = logging.getLogger()
+logger = logging.getLogger('my_logger')
 
 # Connects by default to localhost:27017
-handler = logmonger.MongoHandler(dbname='my_logs', collection='log_records')
+handler = logmonger.MongoHandler(dbname='my_logs')
 logger.addHandler(handler)
 
 ex = OSError('This is an OS error')

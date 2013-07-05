@@ -19,14 +19,14 @@ class MongoHandler(logging.Handler):
     A class which sends records to a MongoDB.
     """
 
-    def __init__(self, host="localhost", port=27017, dbname='logs', collection='logs'):
+    def __init__(self, host="localhost", port=27017, dbname='logs', collection=None):
         """
         Initialize the connection pool and set the desired database.
 
         :param host: the IP address or hostname for the MongoDb (default: localhost)
         :param port: the port (default: 27017)
         :param dbname: the name of the DB to save log records to, will default to 'logs'
-        :param collection: the name of the collection to save logs to (default: 'logs')
+        :param collection: the logger name is used if it is None, otherwise the set value (default: None)
         """
         logging.Handler.__init__(self)
         self.client = pymongo.MongoClient(host, port)
@@ -53,6 +53,7 @@ class MongoHandler(logging.Handler):
                     'module': record.module,
                     'function': record.funcName,
                     'lineno': record.lineno,
+                    'name': record.name
                 }
 
             self.add_thread_info(entry, record)
@@ -95,4 +96,5 @@ class MongoHandler(logging.Handler):
         Save an entry to the collection. We want this in a separate method since
         it makes it easier to stub it with mox.
         """
-        self.client[self.dbname][self.collection].save(entry)
+        collection = self.collection if self.collection else entry['name']
+        self.client[self.dbname][collection].save(entry)
